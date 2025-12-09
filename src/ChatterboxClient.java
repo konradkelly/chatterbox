@@ -289,7 +289,20 @@ public class ChatterboxClient {
                 }
             });
 
+        Thread outgoingChatThread = new Thread(() -> {
+            try {
+                sendOutgoingChats();
+                System.out.println("You have exited the chat. Goodbye!");    
+            } catch (IOException e) {
+                    System.err.println("Failed to send outgoing messages to the server.");
+                    System.err.println("Error: " + e.getMessage());
+                    System.err.println("Exiting application...");
+                    System.exit(1);
+            }
+        });
+
         incomingChatThread.start();
+        outgoingChatThread.start();
     }
     
     /**
@@ -339,10 +352,28 @@ public class ChatterboxClient {
      * - If writing fails (IOException), the connection is gone:
      *   print a message to userOutput and exit.
      */
-    public void sendOutgoingChats() {
+    public void sendOutgoingChats() throws IOException {
         // Use the userInput to read, NOT System.in directly
         // loop forever reading user input
         // write to serverOutput
+        
+        while (userInput.hasNextLine()) {
+            String userMessageString = userInput.nextLine();
+            try {
+                // Converts string into bytes on the BufferedWriter's internal buffer in RAM
+                serverWriter.write(userMessageString + "\n");
+                // Empty buffer and send bytes to the Network Interface Card to initiate TCP/IP transmission
+                serverWriter.flush();
+            } catch (IOException e) {
+                try {
+                    userOutput.write(("Error: Connection disconnected. Unable to send messages: " + e.getMessage() + "\n").getBytes(StandardCharsets.UTF_8));
+                    userOutput.flush();
+                } catch (IOException ignored) {} // ignore if application fails to write to userOutput during disconnection
+                
+                // Re-throw to let streamChat() handle shutdown and cleanup of thread
+                throw new IOException("Connection lost while sending message to server", e);
+            }
+        }
     }
 
 
