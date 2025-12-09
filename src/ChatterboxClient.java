@@ -276,8 +276,20 @@ public class ChatterboxClient {
      *
      * @throws IOException
      */
-    public void streamChat() throws IOException {
-        throw new UnsupportedOperationException("Chat streaming not yet implemented. Implement streamChat() and remove this exception!");
+    public void streamChat() throws IOException { // throw IOException to Main if thread creation fails
+        Thread incomingChatThread = new Thread(() -> {
+            try {    
+                printIncomingChats();
+                System.out.println("You have exited the chat. Goodbye!");
+            } catch (IOException e) {
+                    System.err.println("Failed to received incoming messages from the server.");
+                    System.err.println("Error: " + e.getMessage());
+                    System.err.println("Exiting application...");
+                    System.exit(1);
+                }
+            });
+
+        incomingChatThread.start();
     }
     
     /**
@@ -294,9 +306,24 @@ public class ChatterboxClient {
      * - If an IOException happens, treat it as disconnect:
      *   print a message to userOutput and exit.
      */
-    public void printIncomingChats() {
+    public void printIncomingChats() throws IOException {
         // Listen on serverReader
-        // Write to userOutput, NOT System.out
+        // Write to userOutput, NOT System.out   
+            String line;
+            try {
+                while ((line = serverReader.readLine()) != null) {
+                    userOutput.write((line + "\n").getBytes(StandardCharsets.UTF_8));
+                    userOutput.flush();
+                    }
+                } catch (IOException e) {
+                    try {
+                        // Handle null line if server disconnects
+                        userOutput.write("Server disconnected. Exiting...\n".getBytes(StandardCharsets.UTF_8));
+                        userOutput.flush();
+                    } catch (IOException ignored) {} // ignore if application fails to write to userOutput during disconnection
+                    
+                throw new IOException("Connection lost while receiving message from server", e);
+        }
     }
 
 
