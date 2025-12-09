@@ -229,9 +229,39 @@ public class ChatterboxClient {
      * @throws IllegalArgumentException for bad credentials / server rejection
      */
     public void authenticate() throws IOException, IllegalArgumentException {
-        throw new UnsupportedOperationException("Authenticate not yet implemented. Implement authenticate() and remove this exception!");
-        // Hint: use the username/password instance variables, DO NOT READ FROM userInput
+                // Hint: use the username/password instance variables, DO NOT READ FROM userInput
         // send messages using serverWriter (don't forget to flush!)
+
+
+        // Read the initial prompt from the server
+        String prompt = serverReader.readLine();
+        if (prompt != null) {
+            userOutput.write((prompt + "\n").getBytes(StandardCharsets.UTF_8));
+            userOutput.flush();
+        }
+
+
+        // Pass username and password credentials to the server
+        String credentials = username + " " + password + "\n";
+        serverWriter.write(credentials);
+        serverWriter.flush();
+       
+        // Read the server's response to authentication attempt
+        String response = serverReader.readLine();
+        if (response == null) {
+            throw new IllegalArgumentException("Server Error: Connection closed without response.");
+        } else if (response.startsWith("Welcome to the server")) {
+            userOutput.write((response + "\n").getBytes(StandardCharsets.UTF_8));
+            userOutput.flush();
+            // Display chat rules message
+            String chatRulesMessage = serverReader.readLine();
+            if (chatRulesMessage != null) {
+                userOutput.write((chatRulesMessage + "\n").getBytes(StandardCharsets.UTF_8));
+                userOutput.flush();
+            }
+        } else if (response.startsWith("Authentication failed")) {
+            throw new IllegalArgumentException("Invalid Credentials Error: " + response);                
+        }          
     }
 
     /**
@@ -249,7 +279,7 @@ public class ChatterboxClient {
     public void streamChat() throws IOException {
         throw new UnsupportedOperationException("Chat streaming not yet implemented. Implement streamChat() and remove this exception!");
     }
-
+    
     /**
      * Continuously read messages from the server and print them to the user.
      *
@@ -269,6 +299,7 @@ public class ChatterboxClient {
         // Write to userOutput, NOT System.out
     }
 
+
     /**
      * Continuously read user-typed messages and send them to the server.
      *
@@ -286,6 +317,7 @@ public class ChatterboxClient {
         // loop forever reading user input
         // write to serverOutput
     }
+
 
     public String getHost() {
         return host;
@@ -309,4 +341,6 @@ public class ChatterboxClient {
                 + "]";
     }
 }
+    
+
 
